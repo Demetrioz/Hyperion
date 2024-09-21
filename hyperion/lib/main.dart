@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hyperion/background_service/mqtt_service.dart';
 import 'package:hyperion/background_service/service_events.dart';
+import 'package:hyperion/notification_service/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await MqttService().initializeService();
+
+  await NotificationService.initialize();
+  await MqttService.initialize();
 
   runApp(const MyApp());
 }
@@ -84,6 +87,11 @@ class _MyHomePageState extends State<MyHomePage> {
   //   print('Disconnected');
   // }
 
+  void _handleNotification() {
+    NotificationService.showNotification(
+        0, 'Testing', 'This is a notification');
+  }
+
   void _handleSubscribeToTopic() {
     if (kDebugMode) debugPrint('Attempting to subscribe');
 
@@ -120,6 +128,8 @@ class _MyHomePageState extends State<MyHomePage> {
     _usernameController = TextEditingController();
     _passwordController = TextEditingController();
     _clientIdController = TextEditingController();
+
+    NotificationService.requestNotificationPermissions();
   }
 
   @override
@@ -185,6 +195,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: const Text('Subscribe'))
                 ],
               ),
+              ElevatedButton(
+                  onPressed: _handleNotification, child: const Text('Notify!'))
             ],
           ),
         ),

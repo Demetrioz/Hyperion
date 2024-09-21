@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hyperion/background_service/service_events.dart';
+import 'package:hyperion/notification_service/notification_service.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
@@ -11,6 +12,9 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 @pragma('vm:entry-point')
 void onMqttServiceStart(ServiceInstance service) async {
   if (kDebugMode) debugPrint('Starting MQTT Service...');
+
+  // TODO: Don't re-create if already running? Restarting seems to cause cause
+  // a disconnect
   final mqttService = MqttService();
 
   // TODO: If we have connection details saved locally, initialize
@@ -95,15 +99,18 @@ class MqttService {
   }
 
   // Routes messages from a subscribed MQTT topic to the correct handler
-  void _handleMessage(String topic, String payload) {
+  void _handleMessage(String topic, String payload) async {
     if (kDebugMode) debugPrint('Received $payload from $topic');
+
+    await NotificationService.showNotification(0, 'MQTT Service', payload);
   }
 
   // Initializes the MQTT Background Service on iOS and Android
-  Future<void> initializeService() async {
+  static Future<void> initialize() async {
     if (kDebugMode) debugPrint('Initializing MQTT Service...');
 
     final service = FlutterBackgroundService();
+
     await service.configure(
         iosConfiguration: IosConfiguration(
           autoStart: true,
