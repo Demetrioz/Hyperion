@@ -1,8 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:mqtt_client/mqtt_client.dart';
-import 'package:mqtt_client/mqtt_server_client.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:hyperion/background_service/mqtt_service.dart';
+import 'package:hyperion/background_service/service_events.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await MqttService().initializeService();
+
   runApp(const MyApp());
 }
 
@@ -57,171 +62,133 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  MqttServerClient client =
-      MqttServerClient.withPort("host", "hyperion-app", 8883);
+  late TextEditingController _hostController;
+  late TextEditingController _channelController;
+  late TextEditingController _usernameController;
+  late TextEditingController _passwordController;
+  late TextEditingController _clientIdController;
 
-  int _counter = 0;
+  // void _publish() {
+  //   final builder = MqttClientPayloadBuilder();
+  //   builder.addString('Hello World');
+  //   client.publishMessage('test', MqttQos.atLeastOnce, builder.payload!);
+  // }
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+  // void _unsubscribeFromTopic() {
+  //   client.unsubscribe('test');
+  //   print('Unsubscribed!');
+  // }
+
+  // void _disconnect() {
+  //   client.disconnect();
+  //   print('Disconnected');
+  // }
+
+  void _handleSubscribeToTopic() {
+    if (kDebugMode) debugPrint('Attempting to subscribe');
+
+    final topic = _channelController.text;
+
+    FlutterBackgroundService()
+        .invoke(kServiceEvents[ServiceEvent.subscribe]!, {'topic': topic});
+  }
+
+  void _handleConnectToHost() {
+    if (kDebugMode) debugPrint('Attempting to connect...');
+
+    final host = _hostController.text;
+    final clientId = _clientIdController.text;
+    final username = _usernameController.text;
+    final password = _passwordController.text;
+
+    FlutterBackgroundService()
+        .invoke(kServiceEvents[ServiceEvent.initialize]!, {
+      'host': host,
+      'clientId': clientId,
+      'port': 8883,
+      'username': username,
+      'password': password
     });
-  }
-
-  void _subscribeToTopic() {
-    client.subscribe('test', MqttQos.atLeastOnce);
-    print('Subscribed!');
-    // client.updates!.listen(_receiveMessage);
-  }
-
-  void _subscribeToTopic2() {
-    client.subscribe('test2', MqttQos.atLeastOnce);
-    print('Subscribed!');
-    // client.updates!.listen(_receiveMessage2);
-  }
-
-  void _publish() {
-    final builder = MqttClientPayloadBuilder();
-    builder.addString('Hello World');
-    client.publishMessage('test', MqttQos.atLeastOnce, builder.payload!);
-  }
-
-  void _unsubscribeFromTopic() {
-    client.unsubscribe('test');
-    print('Unsubscribed!');
-  }
-
-  void _unsubscribeFromTopic2() {
-    client.unsubscribe('test2');
-    print('Unsubscribed!');
-  }
-
-  void _disconnect() {
-    client.disconnect();
-    print('Disconnected');
-  }
-
-  void _connectToBroker() async {
-    try {
-      print('Connecting...');
-      await client.connect();
-      client.updates!.listen(_receiveMessage);
-      print('Connected.');
-    } catch (e) {
-      print('Exception: $e');
-      client.disconnect();
-    }
-  }
-
-  void _receiveMessage(List<MqttReceivedMessage<MqttMessage?>>? c) {
-    final receivedMessage = c![0].payload as MqttPublishMessage;
-    final payload = MqttPublishPayload.bytesToStringAsString(
-        receivedMessage.payload.message);
-    print('Received messsage:$payload from topic: ${c[0].topic}');
-  }
-
-  void _receiveMessage2(messageList) {
-    final receivedMessage = messageList[0];
-    if (receivedMessage is! MqttReceivedMessage<MqttPublishMessage>) return;
-    final publishedMessage = receivedMessage.payload;
-    final payload = MqttPublishPayload.bytesToStringAsString(
-        publishedMessage.payload.message);
-
-    print('Received messsage2:$payload from topic: ${receivedMessage.topic}');
   }
 
   @override
   void initState() {
     super.initState();
 
-    client.keepAlivePeriod = 60;
-    final connectMessage = MqttConnectMessage()
-        .authenticateAs('user', 'password')
-        .withWillTopic('willTopic')
-        .withWillMessage('willMessage')
-        .startClean()
-        .withWillQos(MqttQos.atLeastOnce);
+    _hostController = TextEditingController();
+    _channelController = TextEditingController();
+    _usernameController = TextEditingController();
+    _passwordController = TextEditingController();
+    _clientIdController = TextEditingController();
+  }
 
-    client.connectionMessage = connectMessage;
-    client.secure = true;
-    client.autoReconnect = true;
-    // client.updates!.listen(_receiveMessage);
+  @override
+  void dispose() {
+    _hostController.dispose();
+    _channelController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _clientIdController.dispose();
 
-    _connectToBroker();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            ElevatedButton(
-                onPressed: _connectToBroker, child: const Text('Connect')),
-            ElevatedButton(
-                onPressed: _subscribeToTopic, child: const Text('Subscribe')),
-            ElevatedButton(
-                onPressed: _unsubscribeFromTopic,
-                child: const Text('Unsubscribe')),
-            ElevatedButton(
-                onPressed: _subscribeToTopic2, child: const Text('Subscribe')),
-            ElevatedButton(
-                onPressed: _unsubscribeFromTopic2,
-                child: const Text('Unsubscribe')),
-            ElevatedButton(onPressed: _publish, child: const Text('Publish')),
-            ElevatedButton(
-                onPressed: _disconnect, child: const Text('Disconnect'))
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              TextField(
+                controller: _clientIdController,
+                decoration: const InputDecoration(labelText: 'Client Id'),
+              ),
+              TextField(
+                controller: _usernameController,
+                decoration: const InputDecoration(labelText: 'Username'),
+              ),
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Password'),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _hostController,
+                      decoration: const InputDecoration(labelText: 'Host'),
+                    ),
+                  ),
+                  ElevatedButton(
+                      onPressed: _handleConnectToHost,
+                      child: const Text('Connect'))
+                ],
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _channelController,
+                      decoration: const InputDecoration(labelText: 'Topic'),
+                    ),
+                  ),
+                  ElevatedButton(
+                      onPressed: _handleSubscribeToTopic,
+                      child: const Text('Subscribe'))
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
