@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mqtt_client/mqtt_client.dart';
+import 'package:mqtt_client/mqtt_server_client.dart';
 
 void main() {
   runApp(const MyApp());
@@ -55,6 +57,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  MqttServerClient client =
+      MqttServerClient.withPort("host", "hyperion-app", 8883);
+
   int _counter = 0;
 
   void _incrementCounter() {
@@ -66,6 +71,88 @@ class _MyHomePageState extends State<MyHomePage> {
       // called again, and so nothing would appear to happen.
       _counter++;
     });
+  }
+
+  void _subscribeToTopic() {
+    client.subscribe('test', MqttQos.atLeastOnce);
+    print('Subscribed!');
+    // client.updates!.listen(_receiveMessage);
+  }
+
+  void _subscribeToTopic2() {
+    client.subscribe('test2', MqttQos.atLeastOnce);
+    print('Subscribed!');
+    // client.updates!.listen(_receiveMessage2);
+  }
+
+  void _publish() {
+    final builder = MqttClientPayloadBuilder();
+    builder.addString('Hello World');
+    client.publishMessage('test', MqttQos.atLeastOnce, builder.payload!);
+  }
+
+  void _unsubscribeFromTopic() {
+    client.unsubscribe('test');
+    print('Unsubscribed!');
+  }
+
+  void _unsubscribeFromTopic2() {
+    client.unsubscribe('test2');
+    print('Unsubscribed!');
+  }
+
+  void _disconnect() {
+    client.disconnect();
+    print('Disconnected');
+  }
+
+  void _connectToBroker() async {
+    try {
+      print('Connecting...');
+      await client.connect();
+      client.updates!.listen(_receiveMessage);
+      print('Connected.');
+    } catch (e) {
+      print('Exception: $e');
+      client.disconnect();
+    }
+  }
+
+  void _receiveMessage(List<MqttReceivedMessage<MqttMessage?>>? c) {
+    final receivedMessage = c![0].payload as MqttPublishMessage;
+    final payload = MqttPublishPayload.bytesToStringAsString(
+        receivedMessage.payload.message);
+    print('Received messsage:$payload from topic: ${c[0].topic}');
+  }
+
+  void _receiveMessage2(messageList) {
+    final receivedMessage = messageList[0];
+    if (receivedMessage is! MqttReceivedMessage<MqttPublishMessage>) return;
+    final publishedMessage = receivedMessage.payload;
+    final payload = MqttPublishPayload.bytesToStringAsString(
+        publishedMessage.payload.message);
+
+    print('Received messsage2:$payload from topic: ${receivedMessage.topic}');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    client.keepAlivePeriod = 60;
+    final connectMessage = MqttConnectMessage()
+        .authenticateAs('user', 'password')
+        .withWillTopic('willTopic')
+        .withWillMessage('willMessage')
+        .startClean()
+        .withWillQos(MqttQos.atLeastOnce);
+
+    client.connectionMessage = connectMessage;
+    client.secure = true;
+    client.autoReconnect = true;
+    // client.updates!.listen(_receiveMessage);
+
+    _connectToBroker();
   }
 
   @override
@@ -112,6 +199,21 @@ class _MyHomePageState extends State<MyHomePage> {
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
+            ElevatedButton(
+                onPressed: _connectToBroker, child: const Text('Connect')),
+            ElevatedButton(
+                onPressed: _subscribeToTopic, child: const Text('Subscribe')),
+            ElevatedButton(
+                onPressed: _unsubscribeFromTopic,
+                child: const Text('Unsubscribe')),
+            ElevatedButton(
+                onPressed: _subscribeToTopic2, child: const Text('Subscribe')),
+            ElevatedButton(
+                onPressed: _unsubscribeFromTopic2,
+                child: const Text('Unsubscribe')),
+            ElevatedButton(onPressed: _publish, child: const Text('Publish')),
+            ElevatedButton(
+                onPressed: _disconnect, child: const Text('Disconnect'))
           ],
         ),
       ),
