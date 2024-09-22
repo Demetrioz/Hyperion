@@ -3,8 +3,9 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:hyperion/background_service/service_events.dart';
-import 'package:hyperion/notification_service/notification_service.dart';
+import 'package:hyperion/services/data_service/data_service.dart';
+import 'package:hyperion/services/mqtt_service/service_events.dart';
+import 'package:hyperion/services/notification_service/notification_service.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
@@ -13,58 +14,35 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 void onMqttServiceStart(ServiceInstance service) async {
   if (kDebugMode) debugPrint('Starting MQTT Service...');
 
-  // TODO: Don't re-create if already running? Restarting seems to cause cause
-  // a disconnect
   final mqttService = MqttService();
 
-  // TODO: If we have connection details saved locally, initialize
-  // the MQTT client using those
-  // MqttService.instance.initializeClient(connectionDetails)
-  // await MqttService.instance._connectToBroker();
+  if (kDebugMode) debugPrint('Creating dedicated database connection...');
+  await mqttService._dataService.initialize();
+
+  if (kDebugMode) debugPrint('Performing first initialization...');
+  mqttService._loadSettingsAndConnect();
 
   // Register handlers for the background service
   service.on(kServiceEvents[ServiceEvent.initialize]!).listen((data) async {
-    if (kDebugMode) debugPrint('data: $data');
+    if (kDebugMode) debugPrint('Re-initializing the MQTT client');
 
-    // Make sure we have the correct payload before proceeding
-    if (data == null) {
-      if (kDebugMode) {
-        debugPrint('data is null');
-      }
-
-      return;
-    }
-
-    final host = data['host'];
-    final clientId = data['clientId'];
-    final port = data['port'];
-    final username = data['username'];
-    final password = data['password'];
-
-    if (mqttService._clientIsConnected()) {
-      if (kDebugMode) debugPrint('Client is already connected');
-
-      return;
-    }
-
-    mqttService._initializeClient(host, clientId, port);
-    mqttService._connectToBroker(username, password);
+    mqttService._loadSettingsAndConnect();
   });
 
-  service.on(kServiceEvents[ServiceEvent.subscribe]!).listen((data) {
-    // Make sure we have the correct payload before proceeding
-    if (data == null) {
-      if (kDebugMode) {
-        debugPrint('data is null');
-      }
+  // service.on(kServiceEvents[ServiceEvent.subscribe]!).listen((data) {
+  //   // Make sure we have the correct payload before proceeding
+  //   if (data == null) {
+  //     if (kDebugMode) {
+  //       debugPrint('data is null');
+  //     }
 
-      return;
-    }
+  //     return;
+  //   }
 
-    final topic = data['topic'];
+  //   final topic = data['topic'];
 
-    mqttService._subscribeToTopic(topic);
-  });
+  //   mqttService._subscribeToTopic(topic);
+  // });
 }
 
 // iOS-specific function for starting the background service
@@ -81,6 +59,7 @@ Future<bool> onIosBackground(ServiceInstance service) async {
 class MqttService {
   static final MqttService _instance = MqttService._internal();
   MqttServerClient? _client;
+  final _dataService = DataService();
 
   factory MqttService() => _instance;
   MqttService._internal();
@@ -110,21 +89,56 @@ class MqttService {
     if (kDebugMode) debugPrint('Initializing MQTT Service...');
 
     final service = FlutterBackgroundService();
+    final serviceIsRunning = await service.isRunning();
 
-    await service.configure(
-        iosConfiguration: IosConfiguration(
-          autoStart: true,
-          onForeground: onMqttServiceStart,
-          onBackground: onIosBackground,
-        ),
-        androidConfiguration: AndroidConfiguration(
-          autoStart: true,
-          isForegroundMode: false,
-          autoStartOnBoot: true,
-          onStart: onMqttServiceStart,
-        ));
+    if (serviceIsRunning) {
+      if (kDebugMode) debugPrint('Service is already initialized');
+    } else {
+      await service.configure(
+          iosConfiguration: IosConfiguration(
+            autoStart: true,
+            onForeground: onMqttServiceStart,
+            onBackground: onIosBackground,
+          ),
+          androidConfiguration: AndroidConfiguration(
+            autoStart: true,
+            isForegroundMode: false,
+            autoStartOnBoot: true,
+            onStart: onMqttServiceStart,
+          ));
+    }
   }
 
+  // Load connection settings from the database and attempt to connect to the
+  // MQTT broker
+  Future<void> _loadSettingsAndConnect() async {
+    if (kDebugMode) debugPrint('Loading...');
+    final settings = await _dataService.getSettings();
+
+    if (settings.host.isNotEmpty &&
+        settings.port > 0 &&
+        settings.client.isNotEmpty &&
+        settings.user.isNotEmpty &&
+        settings.password.isNotEmpty) {
+      if (kDebugMode) debugPrint('we have values...');
+      // Disconnect before trying to connect with new settings
+      if (_clientIsConnected()) _client!.disconnect();
+
+      if (kDebugMode) debugPrint('initializing again...');
+      // Re-initialize the client and attempt to connect
+      _initializeClient(settings.host, settings.client, settings.port);
+      await _connectToBroker(settings.user, settings.password);
+
+      // if we conencted succesfully and have a notification channel, subscribe
+      // to the notifications
+      if (_clientIsConnected() && settings.notificationChannel.isNotEmpty) {
+        if (kDebugMode) debugPrint('Subscribing to channel...');
+        _subscribeToTopic(settings.notificationChannel);
+      }
+    }
+  }
+
+  // Initialize the MQTT client
   void _initializeClient(String host, String clientId, int port) {
     _client = MqttServerClient.withPort(host, clientId, port);
   }
