@@ -20,7 +20,7 @@ const sidebars: SidebarsConfig = {
       link: {
         type: "generated-index",
       },
-      items: [],
+      items: ["getting-started/mobile-app", "getting-started/server"],
     },
   ],
   releases: ["releases/0.1.0"],

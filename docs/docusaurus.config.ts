@@ -68,6 +68,12 @@ const config: Config = {
           label: "Docs",
         },
         {
+          type: "docSidebar",
+          sidebarId: "releases",
+          position: "left",
+          label: "Release Notes",
+        },
+        {
           href: "https://github.com/Demetrioz/Hyperion",
           label: "GitHub",
           position: "right",
