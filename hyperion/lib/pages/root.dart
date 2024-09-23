@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hyperion/pages/notifications.dart';
 import 'package:hyperion/pages/settings.dart';
 
 class Root extends StatefulWidget {
@@ -11,10 +12,7 @@ class Root extends StatefulWidget {
 class _RootState extends State<Root> {
   int selectedPage = 0;
 
-  static const List<Widget> _pages = <Widget>[
-    Text('Notifications'),
-    Settings()
-  ];
+  static const List<Widget> _pages = <Widget>[Notifications(), Settings()];
 
   void _setSelectedPage(int page) {
     setState(() {

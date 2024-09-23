@@ -125,47 +125,43 @@ class _SettingsState extends State<Settings> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints viewportConstraints) {
-      return Column(
-        children: <Widget>[
-          TextField(
-            controller: _clientIdController,
-            decoration: const InputDecoration(labelText: 'Client Id'),
-          ),
-          TextField(
-            controller: _hostController,
-            decoration: const InputDecoration(labelText: 'Host'),
-          ),
-          TextField(
-            controller: _portController,
-            decoration: const InputDecoration(labelText: 'Port'),
-          ),
-          TextField(
-            controller: _usernameController,
-            decoration: const InputDecoration(labelText: 'Username'),
-          ),
-          TextField(
-            controller: _passwordController,
-            obscureText: _obscurePassword,
-            decoration: InputDecoration(
-                labelText: 'Password',
-                suffixIcon: IconButton(
-                    onPressed: _togglePasswordObscurity,
-                    icon: Icon(_passwordIcon))),
-          ),
-          TextField(
-            controller: _notificationChannelController,
-            decoration:
-                const InputDecoration(labelText: 'Notification Channel'),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-                onPressed: _handleSave, child: const Text('Save')),
-          )
-        ],
-      );
-    });
+    return Column(
+      children: <Widget>[
+        TextField(
+          controller: _clientIdController,
+          decoration: const InputDecoration(labelText: 'Client Id'),
+        ),
+        TextField(
+          controller: _hostController,
+          decoration: const InputDecoration(labelText: 'Host'),
+        ),
+        TextField(
+          controller: _portController,
+          decoration: const InputDecoration(labelText: 'Port'),
+        ),
+        TextField(
+          controller: _usernameController,
+          decoration: const InputDecoration(labelText: 'Username'),
+        ),
+        TextField(
+          controller: _passwordController,
+          obscureText: _obscurePassword,
+          decoration: InputDecoration(
+              labelText: 'Password',
+              suffixIcon: IconButton(
+                  onPressed: _togglePasswordObscurity,
+                  icon: Icon(_passwordIcon))),
+        ),
+        TextField(
+          controller: _notificationChannelController,
+          decoration: const InputDecoration(labelText: 'Notification Channel'),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child:
+              ElevatedButton(onPressed: _handleSave, child: const Text('Save')),
+        )
+      ],
+    );
   }
 }

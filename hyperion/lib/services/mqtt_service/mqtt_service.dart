@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hyperion/services/data_service/data_service.dart';
+import 'package:hyperion/services/data_service/models/notification.dart' as hn;
 import 'package:hyperion/services/mqtt_service/service_events.dart';
 import 'package:hyperion/services/notification_service/notification_service.dart';
 import 'package:mqtt_client/mqtt_client.dart';
@@ -15,6 +16,7 @@ void onMqttServiceStart(ServiceInstance service) async {
   if (kDebugMode) debugPrint('Starting MQTT Service...');
 
   final mqttService = MqttService();
+  mqttService._backgroundService = service;
 
   if (kDebugMode) debugPrint('Creating dedicated database connection...');
   await mqttService._dataService.initialize();
@@ -60,6 +62,7 @@ class MqttService {
   static final MqttService _instance = MqttService._internal();
   MqttServerClient? _client;
   final _dataService = DataService();
+  ServiceInstance? _backgroundService;
 
   factory MqttService() => _instance;
   MqttService._internal();
@@ -81,7 +84,14 @@ class MqttService {
   void _handleMessage(String topic, String payload) async {
     if (kDebugMode) debugPrint('Received $payload from $topic');
 
+    final notification = hn.Notification(text: payload, date: DateTime.now());
     await NotificationService.showNotification(0, 'MQTT Service', payload);
+    await _dataService.insertNotification(notification);
+    _backgroundService?.invoke(
+        kServiceEvents[ServiceEvent.notificationReceived]!, {
+      'text': notification.text,
+      'date': notification.date!.toIso8601String()
+    });
   }
 
   // Initializes the MQTT Background Service on iOS and Android

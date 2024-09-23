@@ -1,7 +1,8 @@
 import 'package:sqflite/sqlite_api.dart';
 
+// 9/22/24
 // Create an initial version and settings table
-migration1(Database db) async {
+version1(Database db) async {
   await db.transaction((tx) async {
     await tx.execute('''
       CREATE TABLE IF NOT EXISTS Version (id INTEGER PRIMARY KEY AUTOINCREMENT, date DATETIME);

@@ -9,7 +9,7 @@ class Hyperion extends StatelessWidget {
     return MaterialApp(
       title: 'Hyperion',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
       home: const Root(),
