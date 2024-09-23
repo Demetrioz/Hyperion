@@ -5,7 +5,6 @@ import 'package:hyperion/components/error_dialog.dart';
 import 'package:hyperion/main.dart';
 import 'package:hyperion/services/mqtt_service/broker_settings.dart';
 import 'package:hyperion/services/mqtt_service/service_events.dart';
-import 'package:hyperion/services/notification_service/notification_service.dart';
 
 class Settings extends StatefulWidget {
   const Settings({super.key});
@@ -107,8 +106,6 @@ class _SettingsState extends State<Settings> {
     _clientIdController = TextEditingController();
 
     _loadSettings();
-
-    NotificationService.requestNotificationPermissions();
   }
 
   @override
