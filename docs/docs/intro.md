@@ -18,23 +18,22 @@ PRs through [GitHub](https://github.com/Demetrioz/Hyperion).
 
 ### Dependencies
 
-- [Flutter](https://flutter.dev/)
-- [mqtt_client](https://pub.dev/packages/mqtt_client)
-- [flutter_backgroound_service](https://pub.dev/packages/flutter_background_service)
-- [flutter_local_notifications](https://pub.dev/packages/flutter_local_notifications)
-- [sqflite](https://pub.dev/packages/sqflite)
+- [Flutter](https://flutter.dev/) - App framework
+- [mqtt_client](https://pub.dev/packages/mqtt_client) - MQTT Client
+- [flutter_backgroound_service](https://pub.dev/packages/flutter_background_service) - Background Service
+- [flutter_local_notifications](https://pub.dev/packages/flutter_local_notifications) - App Notifications
+- [sqflite](https://pub.dev/packages/sqflite) - Data Persistence
 
 ### Versioning
 
-Hyperion utilizess [semantic versioning](https://semver.org/) and follows the
+Hyperion utilizes [semantic versioning](https://semver.org/) and follows the
 \{MAJOR\}.\{MINOR\}.\{PATCH\} format. Release information can be found via the
 [Releases](releases/0.1.0) page.
 
 ## Contact Information
 
-Hyperion is developed and maintained by Kevin Williams. For assistance, reach
-out to
-[kevin.williams@kevinwilliams.dev](mailto:kevin.williams@kevinwilliams.dev)
+Hyperion is developed and maintained by Kevin Williams. For assistance, please
+reach out via [email](mailto:kevin@ktech.industries).
 
 Have you encountered a bug?
 [Let me know!](https://github.com/Demetrioz/Hyperion/issues)
